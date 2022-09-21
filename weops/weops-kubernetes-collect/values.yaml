@@ -1,0 +1,45 @@
+
+# prometheus镜像
+image:
+  repository: bitnami/prometheus
+  tag: 2.38.0
+  pullPolicy: IfNotPresent
+
+# prometheus资源限制
+resources:
+  limits:
+   cpu: 512m
+   memory: 512Mi
+  requests:
+   cpu: 10m
+   memory: 32Mi
+
+# remoteWrtie的目标地址，如
+remoteWrtieUrl: http://admin:admin@10.10.10.10:9090/api/v1/write
+
+# 想要使用其他kube-state-metrics时填写，仅在kubeStateMetrics.enable为false时生效
+kubeStateMetricsUrl: ""
+
+# k8s集群标签，用于区分多集群接入
+kubeClusterLabel: a-kubernetes-cluster
+
+# 数据刮削时间
+scrape_interval: 60s
+evaluation_interval: 60s
+
+# 启用内置 kube-state-metrics
+enableKubeStateMetrics: true
+# kube-state-metrics 配置
+kube-state-metrics:
+  image:
+    repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    tag: v2.5.0
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  resources: 
+    limits:
+     cpu: 100m
+     memory: 256Mi
+    requests:
+     cpu: 10m
+     memory: 64Mi

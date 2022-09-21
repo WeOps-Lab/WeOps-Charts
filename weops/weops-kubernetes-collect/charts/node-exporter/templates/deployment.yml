@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+        weops_version: '3.11'
+      name: {{ .Chart.Name }}
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9100'
+        prometheus.io/path: '/metrics'
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{.Values.image}}
+          imagePullPolicy: IfNotPresent
+      hostNetwork: true
+      hostPID: true

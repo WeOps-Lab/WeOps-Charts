@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weops-prometheus-config
+  labels:
+    app: weops-prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 60s
+      evaluation_interval: 60s
+
+    scrape_configs:
+    - job_name: "kubernetes-assert"
+      static_configs:
+      {{ if .Values.enableKubeStateMetrics }}
+      - targets: [{{- printf "%s-kube-state-metrics:8080" .Release.Name | quote -}}]
+      {{ else }}
+      - targets: [{{ .Values.kubeStateMetricsUrl | quote }}]
+      {{ end }}
+        labels:
+          cluster: {{ .Values.kubeClusterLabel | quote  }}    
+         
+    - job_name: 'kubernetes-monitor'
+      honor_timestamps: false
+      kubernetes_sd_configs:
+      - role: pod
+      relabel_configs:
+      - target_label: cluster
+        replacement: {{ .Values.kubeClusterLabel | quote  }}
+              
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+
+      - source_labels:
+        - "__meta_kubernetes_pod_label_weops_version"
+        regex: "3.11"
+        action: keep
+      
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      
+      - source_labels: [__meta_kubernetes_pod_node_name]
+        target_label: node
+
+      - source_labels:
+        - __meta_kubernetes_service_name
+        target_label: service
+
+      metric_relabel_configs:
+      - source_labels:
+        - container_label_io_kubernetes_container_name
+        target_label: container
+      
+      - source_labels:
+        - container_label_io_kubernetes_pod_namespace
+        target_label: namespace
+
+      - source_labels:
+        - container_label_io_kubernetes_pod_name
+        target_label: pod
+      
+      - source_labels:
+        - container_label_io_kubernetes_pod_uid
+        action: replace
+        target_label: uid
+      
+      # - action: labeldrop
+      #   regex: container_label_(.+)|id|name
+      
+      - source_labels:
+        - __name__
+        regex: node_disk_io_now
+        target_label: dimision
+        replacement: device
+     
+      - source_labels:
+        - __name__
+        regex: container_spec_memory_limit_bytes|container_cpu_utilization|container_memory_usage_bytes|container_memory_utilization|container_cpu_load_average_10s
+        target_label: dimision
+        replacement: container
+
+      - source_labels:
+        - __name__
+        regex: "node_filesystem_size_bytes|node_filesystem_avail_bytes"
+        target_label: dimision
+        replacement: device,fstype,mountpoint
+
+
+    remote_write:
+    - url: {{ .Values.remoteWrtieUrl }}
+    # - url: http://admin:admin@10.10.25.156:9093/api/v1/write
