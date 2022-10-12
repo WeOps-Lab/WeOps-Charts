@@ -28,8 +28,9 @@ spec:
               mountPath: /var/run
             - name: sys
               mountPath: /sys
-            - name: docker
-              mountPath: /var/lib/docker
+            {{ if eq .Values.container_runtime "containerd" }}- name: containerd
+              mountPath: /var/lib/containerd{{ else }}- name: docker
+              mountPath: /var/lib/docker{{ end }}
             - name: disk
               mountPath: /dev/disk
       volumes:
@@ -42,9 +43,11 @@ spec:
         - name: sys
           hostPath:
             path: /sys
-        - name: docker
+        {{ if eq .Values.container_runtime "containerd" }}- name: containerd
           hostPath:
-            path: /var/lib/docker
+            path: /var/lib/containerd{{ else }}- name: docker
+          hostPath:
+            path: /var/lib/docker{{ end }}
         - name: disk
           hostPath:
             path: /dev/disk              
