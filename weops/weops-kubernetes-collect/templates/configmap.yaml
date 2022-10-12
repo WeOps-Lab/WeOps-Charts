@@ -93,4 +93,3 @@ data:
 
     remote_write:
     - url: {{ .Values.remoteWrtieUrl }}
-    # - url: http://admin:admin@10.10.25.156:9093/api/v1/write
