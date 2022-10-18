@@ -26,6 +26,9 @@ spec:
         args:
           - "--enable-feature=agent"
           - "--config.file=/opt/bitnami/prometheus/conf/prometheus.yml"
+          - "--storage.agent.wal-compression"
+          - "--storage.agent.retention.min-time=30s"
+          - "--storage.agent.retention.max-time=5m"
         ports:
           - containerPort: 9090
         volumeMounts:
