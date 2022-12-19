@@ -20,6 +20,19 @@ data:
       {{ end }}
         labels:
           cluster: {{ .Values.kubeClusterLabel | quote  }}    
+
+      metric_relabel_configs:
+      - source_labels:
+        - __name__
+        regex: "kube_node_status_condition"
+        target_label: dimision
+        replacement: condition,status
+
+      - source_labels:
+        - __name__
+        regex: "kube_pod_status_phase"
+        target_label: dimision
+        replacement: phase
          
     - job_name: 'kubernetes-monitor'
       honor_timestamps: false
