@@ -1,8 +1,8 @@
 
 # prometheus镜像
 image:
-  repository: bitnami/prometheus
-  tag: 2.38.0
+  repository: grafana/agent
+  tag: main
   pullPolicy: IfNotPresent
 
 # prometheus资源限制

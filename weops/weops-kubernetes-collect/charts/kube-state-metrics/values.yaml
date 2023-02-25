@@ -135,7 +135,10 @@ topologySpreadConstraints: []
 annotations: {}
 
 # Annotations to be added to the pod
-podAnnotations: {}
+podAnnotations: 
+  prometheus.io/path: /metrics
+  prometheus.io/port: 8080
+  prometheus.io/scrape: true
 
 ## Assign a PriorityClassName to pods if set
 # priorityClassName: ""

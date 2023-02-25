@@ -1,22 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: weops-prometheus
+  name: weops-agent
   labels:
-    app: weops-prometheus
+    app: weops-agent
 spec:
   selector:
     matchLabels:
-      app: weops-prometheus
+      app: weops-agent
   template:
     metadata:
       labels:
-        app: weops-prometheus
+        app: weops-agent
     spec:
       serviceAccount: {{ .Release.Name }}-kube-state-metrics
       containers:
-      - name: prometheus
+      - name: grafana-agent
         env:
+        - AGENT_MODE: flow
         {{- if .Values.resources }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
@@ -24,21 +25,18 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
-          - "--enable-feature=agent"
-          - "--config.file=/opt/bitnami/prometheus/conf/prometheus.yml"
-          - "--storage.agent.wal-compression"
-          - "--storage.agent.retention.min-time=30s"
-          - "--storage.agent.retention.max-time=5m"
+        - "run"
+        - "/etc/agent/flow.yaml"
         ports:
-          - containerPort: 9090
+          - containerPort: 12345
         volumeMounts:
-        - name: prometheus-config
-          mountPath: /opt/bitnami/prometheus/conf/prometheus.yml
-          subPath: ./prometheus.yml
+        - name: agent-config
+          mountPath: /etc/agent/flow.yaml
+          subPath: ./flow.yml
       volumes:
-      - name: prometheus-config
+      - name: agent-config
         configMap:
-          name: weops-prometheus-config
+          name: weops-grafan-agent-config
           items:
-          - key: prometheus.yml
-            path: ./prometheus.yml
+          - key: flow.yml
+            path: ./flow.yml
