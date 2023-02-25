@@ -43,9 +43,15 @@ kube-state-metrics:
     requests:
      cpu: 10m
      memory: 64Mi
+  podAnnotations: 
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scrape: "true"
 
 cadvisor-exporter:
-  weops_version: 3.15
+  labels:
+    weops_version: 3.15
 
 node-exporter:
-  weops_version: 3.15
+  labels:
+    weops_version: 3.15
