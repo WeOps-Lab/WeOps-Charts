@@ -17,7 +17,8 @@ spec:
       containers:
       - name: grafana-agent-flow
         env:
-        - AGENT_MODE: flow
+        - name: AGENT_MODE
+          value: flow
         {{- if .Values.resources }}
         resources:
 {{ toYaml .Values.resources | indent 10 }}
