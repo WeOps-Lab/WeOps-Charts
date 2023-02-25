@@ -6,118 +6,118 @@ metadata:
     app: weops-flow
 data:
   flow.yml: |
-  prometheus.remote_write "staging" {
-    endpoint {
-      url = "{{ .Values.remoteWrtieUrl }}"
+    prometheus.remote_write "staging" {
+      endpoint {
+        url = "{{ .Values.remoteWrtieUrl }}"
+      }
     }
-  }
 
-  discovery.kubernetes "asserts" {
-    role = "pod"
-    namespaces { 
-      own_namespace = true
-    }
-    selectors {
+    discovery.kubernetes "asserts" {
       role = "pod"
-      label = "app.kubernetes.io/name=kube-state-metrics"
+      namespaces { 
+        own_namespace = true
+      }
+      selectors {
+        role = "pod"
+        label = "app.kubernetes.io/name=kube-state-metrics"
+      }
     }
-  }
 
-  discovery.kubernetes "monitors" {
-    role = "pod"
-    namespaces { 
-      own_namespace = true
-    }
-    selectors {
+    discovery.kubernetes "monitors" {
       role = "pod"
-      label = "app in (node-exporter,cadvisor-exporter)"
-    }
-  }
-
-  discovery.relabel "podselector" {
-    targets    = [discovery.kubernetes.asserts.targets,discovery.kubernetes.monitors.targets]
-
-    rule {
-      action        = "replace"
-      target_label  = "cluster"
-      replacement   = "${{ .Values.kubeClusterLabel | quote }}"
+      namespaces { 
+        own_namespace = true
+      }
+      selectors {
+        role = "pod"
+        label = "app in (node-exporter,cadvisor-exporter)"
+      }
     }
 
-    rule  {
-        action        = "keep"
-        source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
-        regex         = true
-    }
+    discovery.relabel "podselector" {
+      targets    = [discovery.kubernetes.asserts.targets,discovery.kubernetes.monitors.targets]
 
-    rule  {
+      rule {
         action        = "replace"
-        source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
-        regex         = "([^:]+)(?::\\d+)?;(\\d+)"
-        replacement   = "$1:$2"
-        target_label  = "__address__"
+        target_label  = "cluster"
+        replacement   = "${{ .Values.kubeClusterLabel | quote }}"
+      }
+
+      rule  {
+          action        = "keep"
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          regex         = true
+      }
+
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement   = "$1:$2"
+          target_label  = "__address__"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_service_name"]
+          target_label  = "service"
+      }
     }
 
-    rule  {
-        source_labels = ["__meta_kubernetes_pod_node_name"]
-        target_label  = "node"
+    prometheus.relabel "relabel" {
+      forward_to = [prometheus.remote_write.staging.receiver]
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_container_name"]
+        target_label  = "container"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_namespace"]
+        target_label  = "namespace"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_name"]
+        target_label  = "pod"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_uid"]
+        action        = "replace"
+        target_label  = "uid"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "node_disk_io_now"
+        target_label  = "dimision"
+        replacement   = "device"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "container_spec_memory_limit_bytes|container_cpu_utilization|container_memory_usage_bytes|container_memory_utilization|container_cpu_load_average_10s"
+        target_label  = "dimision"
+        replacement   = "container"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "node_filesystem_size_bytes|node_filesystem_avail_bytes"
+        target_label  = "dimision"
+        replacement   = "device,fstype,mountpoint"
+      }
     }
 
-    rule  {
-        source_labels = ["__meta_kubernetes_service_name"]
-        target_label  = "service"
+
+    prometheus.scrape "default" {
+      targets = [discovery.relabel.podselector.output]
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      forward_to = [prometheus.relabel.relabel.receiver]
     }
-  }
-
-  prometheus.relabel "relabel" {
-    forward_to = [prometheus.remote_write.staging.receiver]
-
-    rule {
-      source_labels = ["container_label_io_kubernetes_container_name"]
-      target_label  = "container"
-    }
-
-    rule {
-      source_labels = ["container_label_io_kubernetes_pod_namespace"]
-      target_label  = "namespace"
-    }
-
-    rule {
-      source_labels = ["container_label_io_kubernetes_pod_name"]
-      target_label  = "pod"
-    }
-
-    rule {
-      source_labels = ["container_label_io_kubernetes_pod_uid"]
-      action        = "replace"
-      target_label  = "uid"
-    }
-
-    rule {
-      source_labels = ["__name__"]
-      regex         = "node_disk_io_now"
-      target_label  = "dimision"
-      replacement   = "device"
-    }
-
-    rule {
-      source_labels = ["__name__"]
-      regex         = "container_spec_memory_limit_bytes|container_cpu_utilization|container_memory_usage_bytes|container_memory_utilization|container_cpu_load_average_10s"
-      target_label  = "dimision"
-      replacement   = "container"
-    }
-
-    rule {
-      source_labels = ["__name__"]
-      regex         = "node_filesystem_size_bytes|node_filesystem_avail_bytes"
-      target_label  = "dimision"
-      replacement   = "device,fstype,mountpoint"
-    }
-  }
-
-
-  prometheus.scrape "default" {
-    targets = [discovery.relabel.podselector.output]
-    scrape_interval = "60s"
-    scrape_timeout = "60s"
-    forward_to = [prometheus.relabel.relabel.receiver]
-  }
