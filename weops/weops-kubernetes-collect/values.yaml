@@ -43,3 +43,9 @@ kube-state-metrics:
     requests:
      cpu: 10m
      memory: 64Mi
+
+cadvisor-exporter:
+  weops_version: 3.15
+
+node-exporter:
+  weops_version: 3.15

@@ -35,18 +35,18 @@ data:
     }
 
     discovery.relabel "podselector" {
-      targets    = [discovery.kubernetes.asserts.targets,discovery.kubernetes.monitors.targets]
+      targets    = concat(discovery.kubernetes.asserts.targets,discovery.kubernetes.monitors.targets)
 
       rule {
         action        = "replace"
         target_label  = "cluster"
-        replacement   = "${{ .Values.kubeClusterLabel | quote }}"
+        replacement   = {{ .Values.kubeClusterLabel | quote }}
       }
 
       rule  {
           action        = "keep"
           source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
-          regex         = true
+          regex         = "true"
       }
 
       rule  {
@@ -116,7 +116,7 @@ data:
 
 
     prometheus.scrape "default" {
-      targets = [discovery.relabel.podselector.output]
+      targets = discovery.relabel.podselector.output
       scrape_interval = "60s"
       scrape_timeout = "60s"
       forward_to = [prometheus.relabel.relabel.receiver]

@@ -10,7 +10,7 @@ spec:
     metadata:
       labels:
         app: {{ .Chart.Name }}
-        weops_version: '3.11'
+{{ toYaml .Values.labels | indent 8 }}
       name: {{ .Chart.Name }}
       annotations:
         prometheus.io/scrape: 'true'

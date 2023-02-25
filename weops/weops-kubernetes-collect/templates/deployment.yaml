@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: weops-agent
+  name: weops-flow
   labels:
-    app: weops-agent
+    app: weops-flow
 spec:
   selector:
     matchLabels:
-      app: weops-agent
+      app: weops-flow
   template:
     metadata:
       labels:
-        app: weops-agent
+        app: weops-flow
     spec:
       serviceAccount: {{ .Release.Name }}-kube-state-metrics
       containers:
-      - name: grafana-agent
+      - name: grafana-agent-flow
         env:
         - AGENT_MODE: flow
         {{- if .Values.resources }}
@@ -36,7 +36,7 @@ spec:
       volumes:
       - name: agent-config
         configMap:
-          name: weops-grafan-agent-config
+          name: weops-flow-config
           items:
           - key: flow.yml
             path: ./flow.yml
