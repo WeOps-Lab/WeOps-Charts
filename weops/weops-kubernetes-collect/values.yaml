@@ -50,8 +50,8 @@ kube-state-metrics:
 
 cadvisor-exporter:
   labels:
-    weops_version: 3.15
+    weops_version: "3.15"
 
 node-exporter:
   labels:
-    weops_version: 3.15
+    weops_version: "3.15"
