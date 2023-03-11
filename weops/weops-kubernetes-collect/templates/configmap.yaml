@@ -6,7 +6,7 @@ metadata:
     app: weops-flow
 data:
   flow.yml: |
-      prometheus.remote_write "staging" {
+    prometheus.remote_write "staging" {
       endpoint {
         url = "{{ .Values.remoteWrtieUrl }}"
       }
@@ -115,7 +115,7 @@ data:
       }
     }
 
-    prometheus.relabel "relabel" {
+    prometheus.relabel "monitorrelabel" {
       forward_to = [prometheus.remote_write.staging.receiver]
 
       rule {
@@ -165,17 +165,35 @@ data:
       }
     }
 
+    prometheus.relabel "assertrelabel" {
+      forward_to = [prometheus.remote_write.staging.receiver]
+
+      rule {
+        source_labels = ["__name__"]
+        regex = "kube_node_status_condition"
+        target_label  = "dimision"
+        replacement = "condition,status"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex = "kube_pod_status_phase"
+        target_label  = "dimision"
+        replacement = "phase"
+      }
+    }
+
 
     prometheus.scrape "monitor" {
       targets = discovery.relabel.monitorselector.output
       scrape_interval = "60s"
       scrape_timeout = "60s"
-      forward_to = [prometheus.relabel.relabel.receiver]
+      forward_to = [prometheus.relabel.monitorrelabel.receiver]
     }
 
     prometheus.scrape "assert" {
       targets = discovery.relabel.assertselector.output
       scrape_interval = "60s"
       scrape_timeout = "60s"
-      forward_to = [prometheus.remote_write.staging.receiver]
+      forward_to = [prometheus.relabel.assertrelabel.receiver]
     }
