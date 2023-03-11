@@ -1,8 +1,8 @@
 
 # prometheus镜像
 image:
-  repository: bitnami/prometheus
-  tag: 2.38.0
+  repository: grafana/agent
+  tag: main
   pullPolicy: IfNotPresent
 
 # prometheus资源限制
@@ -43,3 +43,15 @@ kube-state-metrics:
     requests:
      cpu: 10m
      memory: 64Mi
+  podAnnotations: 
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+    prometheus.io/scrape: "true"
+
+cadvisor-exporter:
+  labels:
+    weops_version: "3.15"
+
+node-exporter:
+  labels:
+    weops_version: "3.15"
