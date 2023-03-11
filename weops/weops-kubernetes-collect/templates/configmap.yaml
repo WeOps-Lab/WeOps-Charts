@@ -6,7 +6,7 @@ metadata:
     app: weops-flow
 data:
   flow.yml: |
-    prometheus.remote_write "staging" {
+      prometheus.remote_write "staging" {
       endpoint {
         url = "{{ .Values.remoteWrtieUrl }}"
       }
@@ -14,7 +14,7 @@ data:
 
     discovery.kubernetes "asserts" {
       role = "pod"
-      namespaces { 
+      namespaces {
         own_namespace = true
       }
       selectors {
@@ -25,7 +25,7 @@ data:
 
     discovery.kubernetes "monitors" {
       role = "pod"
-      namespaces { 
+      namespaces {
         own_namespace = true
       }
       selectors {
@@ -34,13 +34,60 @@ data:
       }
     }
 
-    discovery.relabel "podselector" {
-      targets    = concat(discovery.kubernetes.asserts.targets,discovery.kubernetes.monitors.targets)
+    discovery.relabel "assertselector" {
+      targets    = discovery.kubernetes.asserts.targets
 
       rule {
         action        = "replace"
         target_label  = "cluster"
         replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+        action        = "replace"
+        target_label  = "protocol"
+        replacement   = "kubernetes"
+      }
+
+      rule  {
+          action        = "keep"
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          regex         = "true"
+      }
+
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement   = "$1:$2"
+          target_label  = "__address__"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_service_name"]
+          target_label  = "service"
+      }
+    }
+
+
+    discovery.relabel "monitorselector" {
+      targets    = discovery.kubernetes.monitors.targets
+
+      rule {
+        action        = "replace"
+        target_label  = "cluster"
+        replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+        action        = "replace"
+        target_label  = "protocol"
+        replacement   = "kubernetes"
       }
 
       rule  {
@@ -74,22 +121,26 @@ data:
       rule {
         source_labels = ["container_label_io_kubernetes_container_name"]
         target_label  = "container"
+        replacement = "$1"
       }
 
       rule {
         source_labels = ["container_label_io_kubernetes_pod_namespace"]
         target_label  = "namespace"
+        replacement = "$1"
       }
 
       rule {
         source_labels = ["container_label_io_kubernetes_pod_name"]
         target_label  = "pod"
+        replacement = "$1"
       }
 
       rule {
         source_labels = ["container_label_io_kubernetes_pod_uid"]
         action        = "replace"
         target_label  = "uid"
+        replacement = "$1"
       }
 
       rule {
@@ -115,9 +166,16 @@ data:
     }
 
 
-    prometheus.scrape "default" {
-      targets = discovery.relabel.podselector.output
+    prometheus.scrape "monitor" {
+      targets = discovery.relabel.monitorselector.output
       scrape_interval = "60s"
       scrape_timeout = "60s"
       forward_to = [prometheus.relabel.relabel.receiver]
+    }
+
+    prometheus.scrape "assert" {
+      targets = discovery.relabel.assertselector.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      forward_to = [prometheus.remote_write.staging.receiver]
     }
