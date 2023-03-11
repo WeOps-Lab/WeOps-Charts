@@ -4,8 +4,19 @@
 
 WeOps Lab Helm Chart仓库
 
-* weops-kuberbetes-collect 用于kubernetes的资源与监控数据采集。集成[kube-state-metrics](https://github.com/kubernetes/kube-state-metrics),[node_exporter](https://github.com/prometheus/node_exporter)和[cadvisor](https://github.com/google/cadvisor)，通过prometheus-agent采集数据，remotewrite到外部服务。
 
+## 架构
+
+### weops-kubernetes-collector
+![weops-kubernetes-collector](docs/imgs/architecture.png)
+
+
+
+## 依赖库文档
+
+* kube-state-metrics: https://github.com/kubernetes/kube-state-metrics
+* node_exporter: https://github.com/prometheus/node_exporter
+* cadvisor: https://github.com/google/cadvisor
 
 ## 使用示例
 
@@ -15,12 +26,13 @@ cd WeOps-Charts/weops/weops-kubernetes-collect
 helm install weops-collecter . -n weops --create-namespace
 ```
 
-参数说明
+
+## 参数说明
 
 参数|描述|必填|默认值
 ---|----|----|----
-image.repository|采集数据使用的prometheus-agent镜像仓库|是|bitnami/prometheus
-image.tag|采集数据使用的prometheus-agent镜像tag|否|2.38.0
+image.repository|采集数据使用的prometheus-agent镜像仓库|是|grafan/agent
+image.tag|采集数据使用的prometheus-agent镜像tag|否|main
 image.pullPolicy|镜像拉取策略|否|IfNotPresent
 resources.limits.cpu|prometheus-agent的cpu资源限制|否|512m
 resources.limits.memory|prometheus-agent的内存资源限制|否|512Mi
