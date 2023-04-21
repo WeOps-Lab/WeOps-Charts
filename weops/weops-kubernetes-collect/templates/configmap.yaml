@@ -1,108 +1,199 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: weops-prometheus-config
+  name: weops-flow-config
   labels:
-    app: weops-prometheus
+    app: weops-flow
 data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 60s
-      evaluation_interval: 60s
+  flow.yml: |
+    prometheus.remote_write "staging" {
+      endpoint {
+        url = "{{ .Values.remoteWrtieUrl }}"
+      }
+    }
 
-    scrape_configs:
-    - job_name: "kubernetes-assert"
-      static_configs:
-      {{ if .Values.enableKubeStateMetrics }}
-      - targets: [{{- printf "%s-kube-state-metrics:8080" .Release.Name | quote -}}]
-      {{ else }}
-      - targets: [{{ .Values.kubeStateMetricsUrl | quote }}]
-      {{ end }}
-        labels:
-          cluster: {{ .Values.kubeClusterLabel | quote  }}    
+    discovery.kubernetes "asserts" {
+      role = "pod"
+      namespaces {
+        own_namespace = true
+      }
+      selectors {
+        role = "pod"
+        label = "app.kubernetes.io/name=kube-state-metrics"
+      }
+    }
 
-      metric_relabel_configs:
-      - source_labels:
-        - __name__
-        regex: "kube_node_status_condition"
-        target_label: dimision
-        replacement: condition,status
+    discovery.kubernetes "monitors" {
+      role = "pod"
+      namespaces {
+        own_namespace = true
+      }
+      selectors {
+        role = "pod"
+        label = "app in (node-exporter,cadvisor-exporter)"
+      }
+    }
 
-      - source_labels:
-        - __name__
-        regex: "kube_pod_status_phase"
-        target_label: dimision
-        replacement: phase
-         
-    - job_name: 'kubernetes-monitor'
-      honor_timestamps: false
-      kubernetes_sd_configs:
-      - role: pod
-      relabel_configs:
-      - target_label: cluster
-        replacement: {{ .Values.kubeClusterLabel | quote  }}
-              
-      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
-        action: keep
-        regex: true
+    discovery.relabel "assertselector" {
+      targets    = discovery.kubernetes.asserts.targets
 
-      - source_labels:
-        - "__meta_kubernetes_pod_label_weops_version"
-        regex: "3.11"
-        action: keep
-      
-      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
-        action: replace
-        regex: ([^:]+)(?::\d+)?;(\d+)
-        replacement: $1:$2
-        target_label: __address__
-      
-      - source_labels: [__meta_kubernetes_pod_node_name]
-        target_label: node
+      rule {
+        action        = "replace"
+        target_label  = "cluster"
+        replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
 
-      - source_labels:
-        - __meta_kubernetes_service_name
-        target_label: service
+      rule {
+        action        = "replace"
+        target_label  = "protocol"
+        replacement   = "kubernetes"
+      }
 
-      metric_relabel_configs:
-      - source_labels:
-        - container_label_io_kubernetes_container_name
-        target_label: container
-      
-      - source_labels:
-        - container_label_io_kubernetes_pod_namespace
-        target_label: namespace
+      rule  {
+          action        = "keep"
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          regex         = "true"
+      }
 
-      - source_labels:
-        - container_label_io_kubernetes_pod_name
-        target_label: pod
-      
-      - source_labels:
-        - container_label_io_kubernetes_pod_uid
-        action: replace
-        target_label: uid
-      
-      # - action: labeldrop
-      #   regex: container_label_(.+)|id|name
-      
-      - source_labels:
-        - __name__
-        regex: node_disk_io_now
-        target_label: dimision
-        replacement: device
-     
-      - source_labels:
-        - __name__
-        regex: container_spec_memory_limit_bytes|container_cpu_utilization|container_memory_usage_bytes|container_memory_utilization|container_cpu_load_average_10s
-        target_label: dimision
-        replacement: container
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement   = "$1:$2"
+          target_label  = "__address__"
+      }
 
-      - source_labels:
-        - __name__
-        regex: "node_filesystem_size_bytes|node_filesystem_avail_bytes"
-        target_label: dimision
-        replacement: device,fstype,mountpoint
+      rule  {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_service_name"]
+          target_label  = "service"
+      }
+    }
 
 
-    remote_write:
-    - url: {{ .Values.remoteWrtieUrl }}
+    discovery.relabel "monitorselector" {
+      targets    = discovery.kubernetes.monitors.targets
+
+      rule {
+        action        = "replace"
+        target_label  = "cluster"
+        replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+        action        = "replace"
+        target_label  = "protocol"
+        replacement   = "kubernetes"
+      }
+
+      rule  {
+          action        = "keep"
+          source_labels = ["__meta_kubernetes_pod_annotation_prometheus_io_scrape"]
+          regex         = "true"
+      }
+
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__", "__meta_kubernetes_pod_annotation_prometheus_io_port"]
+          regex         = "([^:]+)(?::\\d+)?;(\\d+)"
+          replacement   = "$1:$2"
+          target_label  = "__address__"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_pod_node_name"]
+          target_label  = "node"
+      }
+
+      rule  {
+          source_labels = ["__meta_kubernetes_service_name"]
+          target_label  = "service"
+      }
+    }
+
+    prometheus.relabel "monitorrelabel" {
+      forward_to = [prometheus.remote_write.staging.receiver]
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_container_name"]
+        target_label  = "container"
+        replacement = "$1"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_namespace"]
+        target_label  = "namespace"
+        replacement = "$1"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_name"]
+        target_label  = "pod"
+        replacement = "$1"
+      }
+
+      rule {
+        source_labels = ["container_label_io_kubernetes_pod_uid"]
+        action        = "replace"
+        target_label  = "uid"
+        replacement = "$1"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "node_disk_io_now"
+        target_label  = "dimision"
+        replacement   = "device"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "container_spec_memory_limit_bytes|container_cpu_utilization|container_memory_usage_bytes|container_memory_utilization|container_cpu_load_average_10s"
+        target_label  = "dimision"
+        replacement   = "container"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex         = "node_filesystem_size_bytes|node_filesystem_avail_bytes"
+        target_label  = "dimision"
+        replacement   = "device,fstype,mountpoint"
+      }
+    }
+
+    prometheus.relabel "assertrelabel" {
+      forward_to = [prometheus.remote_write.staging.receiver]
+
+      rule {
+        source_labels = ["__name__"]
+        regex = "kube_node_status_condition"
+        target_label  = "dimision"
+        replacement = "condition,status"
+      }
+
+      rule {
+        source_labels = ["__name__"]
+        regex = "kube_pod_status_phase"
+        target_label  = "dimision"
+        replacement = "phase"
+      }
+    }
+
+
+    prometheus.scrape "monitor" {
+      targets = discovery.relabel.monitorselector.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      forward_to = [prometheus.relabel.monitorrelabel.receiver]
+    }
+
+    prometheus.scrape "assert" {
+      targets = discovery.relabel.assertselector.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      forward_to = [prometheus.relabel.assertrelabel.receiver]
+    }

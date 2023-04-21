@@ -1,3 +1,3 @@
 replicas: 1
-image: peytonyip/cadvisor:latest
+image: docker-bkrepo.cwoa.net/ce1b09/weops-docker/cadvisor:latest
 container_runtime: docker
