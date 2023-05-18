@@ -63,11 +63,6 @@ data:
           target_label  = "__address__"
       }
 
-      # rule  {
-      #     source_labels = ["__meta_kubernetes_pod_node_name"]
-      #     target_label  = "node"
-      # }
-
       rule  {
           source_labels = ["__meta_kubernetes_service_name"]
           target_label  = "service"
