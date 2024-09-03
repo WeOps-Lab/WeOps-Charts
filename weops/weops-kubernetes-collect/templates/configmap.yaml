@@ -34,6 +34,265 @@ data:
       }
     }
 
+
+    discovery.kubernetes "kube_proxy" {                                                                                                                                
+      role = "pod"                                                                                                                                                           
+      selectors {                                                                                                                                                            
+        role = "pod"                                                                                                                                                         
+        label = "k8s-app=kube-proxy"                                                                                                                                         
+      }                                                                                                                                                                      
+    }                                                                                                                                                                        
+
+    discovery.relabel "kube_proxy_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_proxy.targets                                                                                                                
+      rule  {                                                                                                                                                                
+          action        = "replace"                                                                                                                                          
+          source_labels = ["__address__"]                                                                                                                                    
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                                
+          replacement   = "$1:{{ .Values.kubeProxyPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                      
+      }                                                                                                                                                                      
+    }
+
+    prometheus.scrape "kube_proxy" {
+      targets = discovery.relabel.kube_proxy_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }                            
+
+    discovery.kubernetes "kube_dns" {                                                                                                                                  
+      role = "pod"                                                                                                                                                         
+      selectors {                                                                                                                                                          
+        role = "pod"                                                                                                                                                       
+        label = "k8s-app=kube-dns"                                                                                                                                         
+      }                                                                                                                                                                    
+    }                                                                                                                                            
+
+    discovery.relabel "kube_dns_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_dns.targets                                                                                                                
+      rule  {                                                                                                                                                              
+          action        = "replace"                                                                                                                                        
+          source_labels = ["__address__"]                                                                                                                                  
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                              
+          replacement   = "$1:{{ .Values.kubeDnsPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                    
+      }                                                                                                                                                                    
+    }
+
+    prometheus.scrape "kube_dns" {
+      targets = discovery.relabel.kube_dns_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    discovery.kubernetes "kube_apiserver" {                                                                                                                              
+      role = "pod"                                                                                                                                                           
+      selectors {                                                                                                                                                            
+        role = "pod"                                                                                                                                                         
+        label = "component=kube-apiserver"                                                                                                                                    
+      }                                                                                                                                                                      
+    }
+
+    discovery.relabel "kube_apiserver_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_apiserver.targets                                                                                                                
+      rule  {                                                                                                                                                                
+          action        = "replace"                                                                                                                                          
+          source_labels = ["__address__"]                                                                                                                                    
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                                
+          replacement   = "$1:{{ .Values.kubeApiServerPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                      
+      }                                                                                                                                                                      
+    }
+
+    prometheus.scrape "kube_apiserver" {
+      targets = discovery.relabel.kube_apiserver_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    discovery.kubernetes "kube_controller_manager" {                                                                                                                    
+      role = "pod"                                                                                                                                                           
+      selectors {                                                                                                                                                            
+        role = "pod"                                                                                                                                                         
+        label = "component=kube-controller-manager"                                                                                                                          
+      }                                                                                                                                                                      
+    }
+
+    discovery.relabel "kube_controller_manager_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_controller_manager.targets                                                                                                                
+      rule  {                                                                                                                                                                
+          action        = "replace"                                                                                                                                          
+          source_labels = ["__address__"]                                                                                                                                    
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                                
+          replacement   = "$1:{{ .Values.kubeControllerManagerPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                      
+      }                                                                                                                                                                      
+    }
+
+    prometheus.scrape "kube_controller_manager" {
+      targets = discovery.relabel.kube_controller_manager_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    discovery.kubernetes "kube_scheduler" {                                                                                                                              
+      role = "pod"                                                                                                                                                           
+      selectors {                                                                                                                                                            
+        role = "pod"                                                                                                                                                         
+        label = "component=kube-scheduler"                                                                                                                                    
+      }                                                                                                                                                                      
+    }
+
+    discovery.relabel "kube_scheduler_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_scheduler.targets                                                                                                                
+      rule  {                                                                                                                                                                
+          action        = "replace"                                                                                                                                          
+          source_labels = ["__address__"]                                                                                                                                    
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                                
+          replacement   = "$1:{{ .Values.kubeSchedulerPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                      
+      }                                                                                                                                                                      
+    }
+
+    prometheus.scrape "kube_scheduler" {
+      targets = discovery.relabel.kube_scheduler_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    discovery.kubernetes "kube_etcd" {                                                                                                                                  
+      role = "pod"                                                                                                                                                         
+      selectors {                                                                                                                                                          
+        role = "pod"                                                                                                                                                       
+        label = "component=etcd"                                                                                                                                          
+      }                                                                                                                                                                    
+    }
+
+    discovery.relabel "kube_etcd_relabel" {                                                                                                                                      
+      targets = discovery.kubernetes.kube_etcd.targets                                                                                                                
+      rule  {                                                                                                                                                                
+          action        = "replace"                                                                                                                                          
+          source_labels = ["__address__"]                                                                                                                                    
+          regex         = "([^:]+)(?::\\d+)?"                                                                                                                                
+          replacement   = "$1:{{ .Values.kubeEtcdPort }}"                                                                                                                                         
+          target_label  = "__address__"                                                                                                                                      
+      }                                                                                                                                                                      
+    }
+
+    prometheus.scrape "kube_etcd" {
+      targets = discovery.relabel.kube_etcd_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    discovery.kubernetes "kubelet" {
+      role = "node"
+    }
+    
+    discovery.relabel "kubelet_relabel" {
+      targets = discovery.kubernetes.kubelet.targets
+
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__"]
+          target_label  = "kubelet_url"
+      }
+
+    }
+
+    prometheus.scrape "kube_kubelet" {
+      targets = discovery.relabel.kubelet_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
+    prometheus.scrape "kube_kubelet_probes" {
+      targets = discovery.relabel.kubelet_relabel.output
+      scrape_interval = "60s"
+      scrape_timeout = "60s"
+      tls_config {
+        ca_file = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        insecure_skip_verify = true
+      }
+      authorization {
+        credentials_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+        type = "Bearer"
+      }
+      metrics_path = "/metrics/probes"
+      scheme = "https"
+      forward_to = [prometheus.remote_write.staging.receiver]
+    }
+
     discovery.relabel "assertselector" {
       targets    = discovery.kubernetes.asserts.targets
 
@@ -177,7 +436,6 @@ data:
         replacement = "phase"
       }
     }
-
 
     prometheus.scrape "monitor" {
       targets = discovery.relabel.monitorselector.output

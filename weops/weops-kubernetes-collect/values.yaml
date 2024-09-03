@@ -8,11 +8,11 @@ image:
 # prometheus资源限制
 resources:
   limits:
-   cpu: 512m
-   memory: 512Mi
+    cpu: 512m
+    memory: 512Mi
   requests:
-   cpu: 10m
-   memory: 32Mi
+    cpu: 10m
+    memory: 32Mi
 
 # remoteWrtie的目标地址，如
 remoteWrtieUrl: http://admin:admin@10.10.10.10:9090/api/v1/write
@@ -38,20 +38,28 @@ kube-state-metrics:
   imagePullSecrets: []
   resources: 
     limits:
-     cpu: 100m
-     memory: 256Mi
+      cpu: 100m
+      memory: 256Mi
     requests:
-     cpu: 10m
-     memory: 64Mi
+      cpu: 10m
+      memory: 64Mi
   podAnnotations: 
     prometheus.io/path: /metrics
     prometheus.io/port: "8080"
     prometheus.io/scrape: "true"
 
-cadvisor-exporter:
-  labels:
-    weops_version: "3.15"
-
 node-exporter:
   labels:
-    weops_version: "3.15"
+    weops_version: "4.16-dev"
+
+cadvisor-exporter:
+  labels:
+    weops_version: "4.16-dev"
+
+kubeProxyPort: 10249
+kubeApiServerPort: 6443
+kubeletPort: 10250
+kubeControllerManagerPort: 10257
+kubeSchedulerPort: 10259
+kubeEtcdPort: 2381
+kubeDnsPort: 9153
