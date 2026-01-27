@@ -1,2 +1,14 @@
 replicas: 1
 image: prom/node-exporter:v1.1.2
+
+# nginx 镜像配置
+nginx:
+  # DaoCloud镜像源（国内可用）
+  image: docker.m.daocloud.io/nginx:alpine
+
+# 端口配置
+ports:
+  # nginx 对外暴露的端口（Prometheus 采集使用）
+  external: 9100
+  # node-exporter 内部监听的端口（仅 Pod 内部访问）
+  internal: 9101

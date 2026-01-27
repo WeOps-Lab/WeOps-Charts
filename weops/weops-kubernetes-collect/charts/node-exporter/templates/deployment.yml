@@ -14,12 +14,39 @@ spec:
       name: {{ .Chart.Name }}
       annotations:
         prometheus.io/scrape: 'true'
-        prometheus.io/port: '9100'
+        prometheus.io/port: '{{ .Values.ports.external }}'
         prometheus.io/path: '/metrics'
     spec:
       containers:
+        # node-exporter 只监听 localhost
         - name: {{ .Chart.Name }}
           image: {{.Values.image}}
           imagePullPolicy: IfNotPresent
+          args:
+            - --path.rootfs=/host
+            - --web.listen-address=127.0.0.1:{{ .Values.ports.internal }}
+          volumeMounts:
+            - name: rootfs
+              mountPath: /host
+              readOnly: true
+        # nginx sidecar 过滤 pprof
+        - name: metrics-filter
+          image: {{ .Values.nginx.image }}
+          ports:
+            - containerPort: {{ .Values.ports.external }}
+              name: metrics
+              protocol: TCP
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+      volumes:
+        - name: rootfs
+          hostPath:
+            path: /
+        - name: nginx-config
+          configMap:
+            name: node-exporter-nginx-config
       hostNetwork: true
       hostPID: true

@@ -7,5 +7,5 @@ spec:
     app: {{ .Chart.Name }}
   ports:
   - protocol: TCP
-    port: 9100
-    targetPort: 9100
+    port: {{ .Values.ports.external }}
+    targetPort: {{ .Values.ports.external }}
