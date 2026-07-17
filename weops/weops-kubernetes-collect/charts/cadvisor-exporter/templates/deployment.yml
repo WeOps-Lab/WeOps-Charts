@@ -17,20 +17,33 @@ spec:
         prometheus.io/port: '8080'
         prometheus.io/path: '/metrics'
     spec:
+      terminationGracePeriodSeconds: 60
       containers:
         - name: {{ .Chart.Name }}
           image: {{.Values.image}}
           imagePullPolicy: IfNotPresent
           args:
-            - "--housekeeping_interval=30s"
+            - "--housekeeping_interval=15s"
             - "--docker_only=true"
-            - "--disable_metrics=accelerator,advtcp,app,cpu,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory,memory_numa,network,oom_event,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp"
+            - "--disable_metrics=advtcp,app,cpu,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory,memory_numa,network,oom_event,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp"
             - "--enable_metrics=cpu,cpuLoad,network,disk,diskIO,memory"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh","-c","sleep 15"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 150Mi
+            limits:
+              cpu: 500m
+              memory: 800Mi
           volumeMounts:
             - name: rootfs
               mountPath: /rootfs
-            - name: var-run
-              mountPath: /var/run
+            - name: var-run-ns
+              mountPath: /var/run/netns
+              readOnly: true
             - name: sys
               mountPath: /sys
             {{ if eq .Values.container_runtime "containerd" }}- name: containerd
@@ -42,9 +55,10 @@ spec:
         - name: rootfs
           hostPath:
             path: /
-        - name: var-run
+        - name: var-run-ns
           hostPath:
-            path: /var/run
+            path: /var/run/netns
+            type: DirectoryOrCreate
         - name: sys
           hostPath:
             path: /sys
