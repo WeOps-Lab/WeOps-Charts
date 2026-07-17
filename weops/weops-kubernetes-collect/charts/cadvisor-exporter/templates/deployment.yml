@@ -6,31 +6,48 @@ spec:
   selector:
     matchLabels:
       app: {{ .Chart.Name }}
+
   template:
     metadata:
       labels:
         app: {{ .Chart.Name }}
-{{ toYaml .Values.labels | indent 8 }}
+{{- with .Values.labels }}
+{{ toYaml . | indent 8 }}
+{{- end }}
       name: {{ .Chart.Name }}
       annotations:
-        prometheus.io/scrape: 'true'
-        prometheus.io/port: '8080'
-        prometheus.io/path: '/metrics'
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+
     spec:
       terminationGracePeriodSeconds: 60
+
       containers:
         - name: {{ .Chart.Name }}
-          image: {{.Values.image}}
+          image: {{ .Values.image }}
           imagePullPolicy: IfNotPresent
+
           args:
             - "--housekeeping_interval=15s"
+{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
+            - "--docker_only=false"
+            - "--containerd=/run/containerd/containerd.sock"
+{{- else }}
             - "--docker_only=true"
+            - "--docker=unix:///var/run/docker.sock"
+{{- end }}
             - "--disable_metrics=advtcp,app,cpu,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory,memory_numa,network,oom_event,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp"
             - "--enable_metrics=cpu,cpuLoad,network,disk,diskIO,memory"
+
           lifecycle:
             preStop:
               exec:
-                command: ["/bin/sh","-c","sleep 15"]
+                command:
+                  - /bin/sh
+                  - -c
+                  - sleep 15
+
           resources:
             requests:
               cpu: 100m
@@ -38,35 +55,81 @@ spec:
             limits:
               cpu: 500m
               memory: 800Mi
+
           volumeMounts:
             - name: rootfs
               mountPath: /rootfs
+              readOnly: true
+
             - name: var-run-ns
               mountPath: /var/run/netns
               readOnly: true
+
             - name: sys
               mountPath: /sys
-            {{ if eq .Values.container_runtime "containerd" }}- name: containerd
-              mountPath: /var/lib/containerd{{ else }}- name: docker
-              mountPath: /var/lib/docker{{ end }}
+              readOnly: true
+
+{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
+            - name: containerd-data
+              mountPath: /var/lib/containerd
+              readOnly: true
+
+            - name: containerd-run
+              mountPath: /run/containerd
+              readOnly: true
+{{- else }}
+            - name: docker-data
+              mountPath: /var/lib/docker
+              readOnly: true
+
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+              readOnly: true
+{{- end }}
+
             - name: disk
               mountPath: /dev/disk
+              readOnly: true
+
       volumes:
         - name: rootfs
           hostPath:
             path: /
+            type: Directory
+
         - name: var-run-ns
           hostPath:
             path: /var/run/netns
             type: DirectoryOrCreate
+
         - name: sys
           hostPath:
             path: /sys
-        {{ if eq .Values.container_runtime "containerd" }}- name: containerd
+            type: Directory
+
+{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
+        - name: containerd-data
           hostPath:
-            path: /var/lib/containerd{{ else }}- name: docker
+            path: /var/lib/containerd
+            type: Directory
+
+        - name: containerd-run
           hostPath:
-            path: /var/lib/docker{{ end }}
+            path: /run/containerd
+            type: Directory
+{{- else }}
+        - name: docker-data
+          hostPath:
+            path: /var/lib/docker
+            type: Directory
+
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+{{- end }}
+
         - name: disk
           hostPath:
-            path: /dev/disk              
+            path: /dev/disk
+            type: Directory              
