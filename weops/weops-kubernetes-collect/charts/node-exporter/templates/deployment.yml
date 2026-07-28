@@ -23,12 +23,28 @@ spec:
           image: {{.Values.image}}
           imagePullPolicy: IfNotPresent
           args:
-            - --path.rootfs=/host
+            - --path.procfs=/host-proc
+            - --path.sysfs=/host-sys
+            - --path.rootfs={{ .Values.filesystem.rootMount.mountPath }}
+            - --collector.filesystem.ignored-mount-points={{ .Values.filesystem.ignoredMountPoints | quote }}
             - --web.listen-address=127.0.0.1:{{ .Values.ports.internal }}
           volumeMounts:
-            - name: rootfs
-              mountPath: /host
+            - name: proc
+              mountPath: /host-proc
               readOnly: true
+            - name: sys
+              mountPath: /host-sys
+              readOnly: true
+            - name: filesystem-root
+              mountPath: {{ .Values.filesystem.rootMount.mountPath }}
+              readOnly: true
+{{ range .Values.filesystem.mounts }}
+{{ if .enabled }}
+            - name: filesystem-{{ .name }}
+              mountPath: {{ $.Values.filesystem.rootMount.mountPath }}{{ .mountPath }}
+              readOnly: true
+{{ end }}
+{{ end }}
         # nginx sidecar 过滤 pprof
         - name: metrics-filter
           image: {{ .Values.nginx.image }}
@@ -42,9 +58,26 @@ spec:
               subPath: nginx.conf
               readOnly: true
       volumes:
-        - name: rootfs
+        - name: proc
           hostPath:
-            path: /
+            path: /proc
+            type: Directory
+        - name: sys
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: filesystem-root
+          hostPath:
+            path: {{ .Values.filesystem.rootMount.hostPath }}
+            type: Directory
+{{ range .Values.filesystem.mounts }}
+{{ if .enabled }}
+        - name: filesystem-{{ .name }}
+          hostPath:
+            path: {{ .hostPath }}
+            type: Directory
+{{ end }}
+{{ end }}
         - name: nginx-config
           configMap:
             name: node-exporter-nginx-config

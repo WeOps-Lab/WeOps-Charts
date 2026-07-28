@@ -1,7 +1,7 @@
 
 # prometheus镜像
 image:
-  repository: grafana/agent
+  repository: docker.1panel.live/grafana/agent
   tag: main
   pullPolicy: IfNotPresent
 
@@ -32,7 +32,7 @@ enableKubeStateMetrics: true
 # kube-state-metrics 配置
 kube-state-metrics:
   image:
-    repository: registry.k8s.io/kube-state-metrics/kube-state-metrics
+    repository: k8s.m.daocloud.io/kube-state-metrics/kube-state-metrics
     tag: v2.5.0
     pullPolicy: IfNotPresent
   imagePullSecrets: []

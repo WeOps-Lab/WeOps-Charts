@@ -14,4 +14,4 @@ maintainers:
   name: ericchen
 name: weops-kubenetes-collect
 type: application
-version: 3.11.0
+version: 3.11.3

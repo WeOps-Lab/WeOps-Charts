@@ -1,10 +1,31 @@
 replicas: 1
-image: prom/node-exporter:v1.1.2
+image: docker.1panel.live/prom/node-exporter:v1.1.2
+
+filesystem:
+  # Bind a regular directory on the host root filesystem instead of host /.
+  # statfs(/host) then reports the host root filesystem without recursively
+  # exposing mounts such as /run/netns/cni-* to the container mount namespace.
+  rootMount:
+    hostPath: /etc
+    mountPath: /host
+  # Exclude virtual and container-runtime mounts that are not explicitly bound
+  # below. Go/RE2 does not support negative-lookahead allowlist expressions.
+  ignoredMountPoints: '^/(dev|proc|run|sys|var/lib/(containerd|containers|docker|kubelet))($|/)'
+  # Optional mounts must exist at the same path on every target node.
+  mounts:
+    - name: boot
+      hostPath: /boot
+      mountPath: /boot
+      enabled: false
+    - name: data
+      hostPath: /data
+      mountPath: /data
+      enabled: false
 
 # nginx 镜像配置
 nginx:
   # DaoCloud镜像源（国内可用）
-  image: docker.m.daocloud.io/nginx:alpine
+  image: docker.1panel.live/library/nginx:alpine
 
 # 端口配置
 ports:

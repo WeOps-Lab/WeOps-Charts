@@ -1,3 +1,15 @@
 replicas: 1
-image: registry.k8s.io/cadvisor:v0.49.1
+image: gcr.m.daocloud.io/cadvisor/cadvisor:v0.49.1
 container_runtime: docker
+
+containerd:
+  dataRoot:
+    enabled: true
+    hostPath: /var/lib/containerd
+    mountPath: /var/lib/containerd
+    hostPathType: Directory
+  state:
+    hostPath: /run/containerd
+    mountPath: /run/containerd
+    hostPathType: Directory
+  socketPath: /run/containerd/containerd.sock

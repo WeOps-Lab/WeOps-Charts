@@ -30,23 +30,17 @@ spec:
 
           args:
             - "--housekeeping_interval=15s"
-{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
-            - "--docker_only=false"
-            - "--containerd=/run/containerd/containerd.sock"
-{{- else }}
+{{- if eq (default "docker" .Values.container_runtime) "docker" }}
             - "--docker_only=true"
             - "--docker=unix:///var/run/docker.sock"
+{{- else if eq .Values.container_runtime "containerd" }}
+            - "--docker_only=false"
+            - "--containerd={{ .Values.containerd.socketPath }}"
+{{- else }}
+{{- fail "container_runtime must be either docker or containerd" }}
 {{- end }}
             - "--disable_metrics=advtcp,app,cpu,cpuLoad,cpu_topology,cpuset,disk,diskIO,hugetlb,memory,memory_numa,network,oom_event,percpu,perf_event,process,referenced_memory,resctrl,sched,tcp,udp"
             - "--enable_metrics=cpu,cpuLoad,network,disk,diskIO,memory"
-
-          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - /bin/sh
-                  - -c
-                  - sleep 15
 
           resources:
             requests:
@@ -61,29 +55,27 @@ spec:
               mountPath: /rootfs
               readOnly: true
 
-            - name: var-run-ns
-              mountPath: /var/run/netns
-              readOnly: true
-
             - name: sys
               mountPath: /sys
               readOnly: true
 
-{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
-            - name: containerd-data
-              mountPath: /var/lib/containerd
-              readOnly: true
-
-            - name: containerd-run
-              mountPath: /run/containerd
-              readOnly: true
-{{- else }}
+{{- if eq (default "docker" .Values.container_runtime) "docker" }}
             - name: docker-data
               mountPath: /var/lib/docker
               readOnly: true
 
             - name: docker-sock
               mountPath: /var/run/docker.sock
+              readOnly: true
+{{- else if eq .Values.container_runtime "containerd" }}
+{{- if .Values.containerd.dataRoot.enabled }}
+            - name: containerd-data
+              mountPath: {{ .Values.containerd.dataRoot.mountPath }}
+              readOnly: true
+{{- end }}
+
+            - name: containerd-run
+              mountPath: {{ .Values.containerd.state.mountPath }}
               readOnly: true
 {{- end }}
 
@@ -97,27 +89,12 @@ spec:
             path: /
             type: Directory
 
-        - name: var-run-ns
-          hostPath:
-            path: /var/run/netns
-            type: DirectoryOrCreate
-
         - name: sys
           hostPath:
             path: /sys
             type: Directory
 
-{{- if eq (default "docker" .Values.container_runtime) "containerd" }}
-        - name: containerd-data
-          hostPath:
-            path: /var/lib/containerd
-            type: Directory
-
-        - name: containerd-run
-          hostPath:
-            path: /run/containerd
-            type: Directory
-{{- else }}
+{{- if eq (default "docker" .Values.container_runtime) "docker" }}
         - name: docker-data
           hostPath:
             path: /var/lib/docker
@@ -127,6 +104,22 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+{{- else if eq .Values.container_runtime "containerd" }}
+{{- if .Values.containerd.dataRoot.enabled }}
+        - name: containerd-data
+          hostPath:
+            path: {{ .Values.containerd.dataRoot.hostPath }}
+{{- with .Values.containerd.dataRoot.hostPathType }}
+            type: {{ . }}
+{{- end }}
+{{- end }}
+
+        - name: containerd-run
+          hostPath:
+            path: {{ .Values.containerd.state.hostPath }}
+{{- with .Values.containerd.state.hostPathType }}
+            type: {{ . }}
+{{- end }}
 {{- end }}
 
         - name: disk
