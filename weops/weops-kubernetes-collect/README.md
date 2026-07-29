@@ -456,25 +456,60 @@ sudo grep -E '(/var)?/run/netns|cni-' "/proc/${PID}/mountinfo"
 
 ### 5.4 验证 Pod 创建、Ready 和正常删除
 
-选择一个集群能够拉取的最小测试镜像并替换 `<TEST_IMAGE>`：
+选择一个集群能够拉取的最小测试镜像并替换 `<TEST_IMAGE>`，同时将 `<NODE_NAME>` 替换为目标节点名称。以下流程使用唯一的临时 namespace；只有 namespace 创建成功后才注册清理函数，异常退出时也只清理本次创建的测试资源。
 
 ```bash
-kubectl create namespace weops-collect-verify
-kubectl run netns-delete-check \
-  --namespace weops-collect-verify \
-  --image='<TEST_IMAGE>' \
-  --restart=Never
-kubectl wait pod/netns-delete-check \
-  --namespace weops-collect-verify \
+set -euo pipefail
+
+NODE_NAME="<NODE_NAME>"
+TEST_IMAGE="<TEST_IMAGE>"
+VERIFY_NS="weops-collect-verify-$(date +%s)-$$"
+TEST_POD="netns-delete-check"
+NS_CREATED=false
+
+if [[ "${NODE_NAME}" == "<NODE_NAME>" || -z "${NODE_NAME}" ]]; then
+  echo "错误：请将 NODE_NAME 替换为目标节点名称" >&2
+  exit 1
+fi
+if [[ "${TEST_IMAGE}" == "<TEST_IMAGE>" || -z "${TEST_IMAGE}" ]]; then
+  echo "错误：请将 TEST_IMAGE 替换为集群能够拉取的测试镜像" >&2
+  exit 1
+fi
+
+cleanup() {
+  status=$?
+  trap - EXIT INT TERM
+  if [[ "${NS_CREATED}" == true ]]; then
+    kubectl delete pod "${TEST_POD}" --namespace "${VERIFY_NS}" \
+      --ignore-not-found --wait=true >/dev/null 2>&1 || true
+    kubectl delete namespace "${VERIFY_NS}" \
+      --ignore-not-found --wait=true >/dev/null 2>&1 || true
+  fi
+  exit "${status}"
+}
+
+kubectl create namespace "${VERIFY_NS}"
+NS_CREATED=true
+trap cleanup EXIT INT TERM
+
+kubectl run "${TEST_POD}" \
+  --namespace "${VERIFY_NS}" \
+  --image="${TEST_IMAGE}" \
+  --restart=Never \
+  --overrides="{\"spec\":{\"nodeName\":\"${NODE_NAME}\"}}"
+kubectl wait "pod/${TEST_POD}" \
+  --namespace "${VERIFY_NS}" \
   --for=condition=Ready \
   --timeout=120s
-kubectl delete pod netns-delete-check \
-  --namespace weops-collect-verify \
+kubectl delete pod "${TEST_POD}" \
+  --namespace "${VERIFY_NS}" \
   --wait=true
-kubectl delete namespace weops-collect-verify
+kubectl delete namespace "${VERIFY_NS}" --wait=true
+NS_CREATED=false
+trap - EXIT INT TERM
 ```
 
-成功信号：测试 Pod 能创建、进入 `Ready`，并在删除后正常消失。若测试失败，保留 Pod 事件、kubelet 和运行时日志；不要把镜像拉取失败、调度失败等其他原因直接归因于 netns。
+成功信号：测试 Pod 能在指定节点创建、进入 `Ready`，并在删除后正常消失；本次创建的临时 namespace 也正常删除。若测试失败，清理函数会在保留原始退出状态的同时尝试删除本次创建的 Pod 和 namespace。清理失败时，记录命令输出并使用已输出的唯一 namespace 名称检查残留资源；不要删除其他 namespace，也不要把镜像拉取失败、调度失败等其他原因直接归因于 netns。
 
 ### 5.5 检查 kubelet 和运行时日志
 
