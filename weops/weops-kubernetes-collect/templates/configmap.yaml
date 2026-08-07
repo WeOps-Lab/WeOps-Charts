@@ -258,6 +258,14 @@ data:
           target_label  = "kubelet_url"
       }
 
+      rule  {
+          action        = "replace"
+          source_labels = ["__address__"]
+          regex         = "([^:]+)(?::\\d+)?"
+          replacement   = "$1:{{ .Values.kubeletPort }}"
+          target_label  = "__address__"
+      }
+
     }
 
     prometheus.scrape "kube_kubelet" {

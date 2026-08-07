@@ -39,10 +39,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: weops-flow-collector
+  name: {{ .Release.Name }}-weops-flow-collector
 subjects:
 - kind: ServiceAccount
-  name: weops-flow-collector
+  name: {{ .Release.Name }}-weops-flow-collector
   namespace: {{ .Release.Namespace }}
 
 ---
