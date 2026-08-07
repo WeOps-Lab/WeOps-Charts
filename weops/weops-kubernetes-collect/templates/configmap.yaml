@@ -52,6 +52,18 @@ data:
           replacement   = "$1:{{ .Values.kubeProxyPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                      
       }                                                                                                                                                                      
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_proxy" {
@@ -87,6 +99,18 @@ data:
           replacement   = "$1:{{ .Values.kubeDnsPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                    
       }                                                                                                                                                                    
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_dns" {
@@ -122,6 +146,18 @@ data:
           replacement   = "$1:{{ .Values.kubeApiServerPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                      
       }                                                                                                                                                                      
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_apiserver" {
@@ -157,6 +193,18 @@ data:
           replacement   = "$1:{{ .Values.kubeControllerManagerPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                      
       }                                                                                                                                                                      
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_controller_manager" {
@@ -192,6 +240,18 @@ data:
           replacement   = "$1:{{ .Values.kubeSchedulerPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                      
       }                                                                                                                                                                      
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_scheduler" {
@@ -227,6 +287,18 @@ data:
           replacement   = "$1:{{ .Values.kubeEtcdPort }}"                                                                                                                                         
           target_label  = "__address__"                                                                                                                                      
       }                                                                                                                                                                      
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_etcd" {
@@ -266,6 +338,18 @@ data:
           target_label  = "__address__"
       }
 
+
+      rule {
+          action        = "replace"
+          target_label  = "cluster"
+          replacement   = {{ .Values.kubeClusterLabel | quote }}
+      }
+
+      rule {
+          action        = "replace"
+          target_label  = "protocol"
+          replacement   = "kubernetes"
+      }
     }
 
     prometheus.scrape "kube_kubelet" {
