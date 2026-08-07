@@ -13,9 +13,9 @@ spec:
       labels:
         app: weops-flow
     spec:
-      serviceAccount: {{ .Release.Name }}-kube-state-metrics
+      serviceAccount: {{ .Release.Name }}-weops-flow
       containers:
-      - name: grafana-agent-flow
+      - name: weops-flow
         env:
         - name: AGENT_MODE
           value: flow
