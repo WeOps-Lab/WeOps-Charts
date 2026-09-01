@@ -129,8 +129,6 @@ data:
       forward_to = [prometheus.remote_write.staging.receiver]
     }
 
-    # 二进制/kubeasz 等部署下 apiserver 是主机进程，没有 component=kube-apiserver 的 Pod。
-    # 改为发现 default/kubernetes 的 Endpoints（master IP:6443）。
     discovery.kubernetes "kube_apiserver" {
       role = "endpoints"
       namespaces {
