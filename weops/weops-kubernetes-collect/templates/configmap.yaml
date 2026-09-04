@@ -9,6 +9,15 @@ data:
     prometheus.remote_write "staging" {
       endpoint {
         url = "{{ .Values.remoteWrtieUrl }}"
+        {{- $q := .Values.remoteWriteQueue | default dict }}
+        queue_config {
+          capacity             = {{ $q.capacity | default 50000 }}
+          min_shards           = {{ $q.minShards | default 4 }}
+          max_shards           = {{ $q.maxShards | default 50 }}
+          max_samples_per_send = {{ $q.maxSamplesPerSend | default 5000 }}
+          batch_send_deadline  = {{ $q.batchSendDeadline | default "5s" | quote }}
+          max_backoff          = {{ $q.maxBackoff | default "5s" | quote }}
+        }
       }
     }
 

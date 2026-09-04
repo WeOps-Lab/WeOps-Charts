@@ -17,6 +17,17 @@ resources:
 # remoteWrtie的目标地址，如
 remoteWrtieUrl: http://admin:admin@10.10.10.10:9090/api/v1/write
 
+# Alloy remote_write 发送队列配置。
+# 默认 1 shard + 小容量队列，60s 采集洪峰（node-exporter + cAdvisor）会打满队列，
+# 导致样本在采集器本机丢弃（表现为 node 指标曲线断点、up 正常）。
+remoteWriteQueue:
+  capacity: 50000
+  minShards: 4
+  maxShards: 50
+  maxSamplesPerSend: 5000
+  batchSendDeadline: "5s"
+  maxBackoff: "5s"
+
 # 想要使用其他kube-state-metrics时填写，仅在kubeStateMetrics.enable为false时生效
 kubeStateMetricsUrl: ""
 
